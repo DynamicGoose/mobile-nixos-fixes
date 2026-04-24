@@ -2,11 +2,12 @@
 
 {
   imports = [
-    ./sound.nix
   ];
 
+  mobile.device.dtbSocPrefix = lib.mkDefault "sc7280";
+
   mobile.hardware = {
-    soc = "qualcomm-sdm845";
+    soc = "qualcomm-sc7280";
   };
 
   mobile.boot.stage-1 = {
@@ -19,27 +20,21 @@
   # Note: on devices it's highly likely no firmware is required during stage-1.
   # DRM *should* work fine without firmware.
   # Modems and such will pick them back up in stage-2.
-  # Even though, we're eagerly adding firmware files that fit.
-  # This is a workaround for non-modular kernels wanting to load the adsp firmware during stage-1.
   mobile.boot.stage-1.firmware = [
     (pkgs.runCommand "initrd-firmware" {} ''
       cp -vrf ${config.mobile.device.firmware} $out
       chmod -R +w $out
       # Big file, fills and breaks stage-1
-      find $out/lib/firmware/qcom/sdm845 -name "modem.mbn" -delete -print
-
-      # Copy extra a630 firmware from linux-firmware
-      cp -vf ${pkgs.linux-firmware}/lib/firmware/qcom/{a630_sqe.fw,a630_gmu.bin} $out/lib/firmware/qcom
+      find $out/lib/firmware/qcom/${config.mobile.device.dtbSocPrefix} -name "modem.mbn" -delete -print
     '')
   ];
-
 
   mobile.system.type = "android";
   mobile.system.android.useSparseImage = true;
   mobile.system.android = {
-    # Assumed all SDM845 devices use A/B
+    # Assumed all SC7280 devices use A/B
     ab_partitions = lib.mkDefault true;
-    # Assumed all SDM845 devices can boot with the same options.
+    # Assumed all SC7280 devices can boot with the same options.
     bootimg.flash = {
       offset_base = "0x00000000";
       offset_kernel = "0x00008000";
@@ -49,7 +44,7 @@
       pagesize = "4096";
     };
     appendDTB = lib.mkDefault [
-      "dtbs/qcom/sdm845-${config.mobile.device.name}.dtb"
+      "dtbs/qcom/${config.mobile.device.dtbSocPrefix}-${config.mobile.device.name}.dtb"
     ];
   };
 
@@ -64,9 +59,9 @@
     rndis = "rndis.usb0";
   };
 
-  mobile.quirks.qualcomm.sdm845-modem.enable = true;
+  mobile.quirks.qualcomm.sc7280-modem.enable = lib.mkDefault true;
 
   services.udev.extraRules = ''
-    SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT}=="1", SUBSYSTEMS=="input", ATTRS{name}=="pmi8998_haptics", TAG+="uaccess", ENV{FEEDBACKD_TYPE}="vibra"
+    SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT}=="1", SUBSYSTEMS=="input", ATTRS{name}=="*haptics", TAG+="uaccess", ENV{FEEDBACKD_TYPE}="vibra"
   '';
 }
