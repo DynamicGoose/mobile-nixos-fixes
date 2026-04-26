@@ -15,8 +15,8 @@ let
   } ''
     (PS4=" $ "; set -x
     mkdir -p $out
-    cp -r ${pkgs.xorg.xkeyboardconfig}/share/X11/xkb $out/xkb
-    cp -r ${pkgs.xorg.libX11.out}/share/X11/locale $out/locale
+    cp -r ${pkgs.xkeyboard-config}/share/X11/xkb $out/xkb
+    cp -r ${pkgs.libx11.out}/share/X11/locale $out/locale
     )
 
     for f in $(grep -lIiR '${pkgs.xorg.libX11.out}' $out); do
