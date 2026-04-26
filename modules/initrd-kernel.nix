@@ -12,21 +12,12 @@ let
   ;
   cfg = config.mobile.boot.stage-1.kernel;
 
-  modulesClosure = pkgs.makeModulesClosure (
-    {
-      kernel =
-        # Use the "new" split output for modules, when available.
-        # Fixes breakage caused by https://github.com/NixOS/nixpkgs/pull/423933
-        cfg.package.modules or cfg.package
-      ;
-      allowMissing = cfg.allowMissingModules;
-      rootModules = cfg.modules ++ cfg.additionalModules;
-      firmware = config.hardware.firmware;
-    } //
-    (lib.optionalAttrs ((builtins.functionArgs pkgs.makeModulesClosure) ? allowEmpty) {
-      allowEmpty = !cfg.modular;
-    })
-  );
+  modulesClosure = pkgs.makeModulesClosure {
+    kernel = cfg.package;
+    allowMissing = cfg.allowMissingModules;
+    rootModules = cfg.modules ++ cfg.additionalModules;
+    firmware = config.hardware.firmware;
+  };
 
   inherit (config.mobile.quirks) supportsStage-0;
 in
@@ -180,7 +171,7 @@ in
             perl # Needed by netpbm
           ];
         } ''
-          magick \
+          convert \
             ${cfg.logo.logo} \
             -resize ${toString config.mobile.hardware.screen.width}x${toString config.mobile.hardware.screen.height} \
             -trim converted.ppm
@@ -242,7 +233,7 @@ in
             extend = _: self;
           };
         in self
-        else (lib.recurseIntoAttrs (pkgs.linuxPackagesFor cfg.package))
+        else (pkgs.recurseIntoAttrs (pkgs.linuxPackagesFor cfg.package))
       );
 
       system.boot.loader.kernelFile = mkIf (cfg.package != null && cfg.package ? file) (

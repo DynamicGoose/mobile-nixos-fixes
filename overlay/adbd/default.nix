@@ -48,9 +48,4 @@ stdenv.mkDerivation {
     mkdir -p $out/bin
     cp -v core/build_adbd/adbd $out/bin/
   '';
-
-  NIX_CFLAGS_COMPILE = [
-    "-Wno-implicit-function-declaration"
-    "-Wno-incompatible-pointer-types"
-  ];
 }

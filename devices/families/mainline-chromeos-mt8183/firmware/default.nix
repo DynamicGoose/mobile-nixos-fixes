@@ -1,12 +1,12 @@
 { lib
 , runCommand
-, linux-firmware
+, firmwareLinuxNonfree
 }:
 
 # The minimum set of firmware files required for the family
 runCommand "mt8183-chromeos-firmware" {
-  src = linux-firmware;
-  meta.license = linux-firmware.meta.license;
+  src = firmwareLinuxNonfree;
+  meta.license = firmwareLinuxNonfree.meta.license;
 } ''
   for firmware in \
     ath10k/QCA6174/hw3.0 \

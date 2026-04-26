@@ -3,7 +3,7 @@
 , roboto
 , fira-mono
 , font-awesome_5
-, svgo
+, nodePackages
 }:
 
 let
@@ -11,7 +11,7 @@ let
 in
 runCommand "gui-assets" {
   nativeBuildInputs = [
-    svgo
+    nodePackages.svgo
   ];
 } ''
 mkdir -p $out

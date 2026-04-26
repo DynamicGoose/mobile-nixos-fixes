@@ -1,6 +1,6 @@
 { stdenvNoCC
 , lib
-, util-linux
+, utillinux
 , config
 }:
 
@@ -28,7 +28,7 @@ stdenvNoCC.mkDerivation rec {
   ;
 
   nativeBuildInputs = [
-    util-linux
+    utillinux
   ];
 
   buildCommand = let

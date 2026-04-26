@@ -1,26 +1,22 @@
-{
-  lib,
-  stdenv,
-  fetchFromGitHub,
-}:
-stdenv.mkDerivation rec {
+{ lib, stdenv, fetchFromGitHub }:
+
+stdenv.mkDerivation {
   pname = "qmic";
-  version = "1.0";
+  version = "unstable-2022-07-18";
 
   src = fetchFromGitHub {
-    owner = "linux-msm";
+    owner = "andersson";
     repo = "qmic";
-    tag = "v${version}";
-    hash = "sha256-0/mIg98pN66ZaVsQ6KmZINuNfiKvdEHMsqDx0iciF8w=";
+    rev = "ed896c97dc2b3b7edcba103e02fd0f3368b56ddd";
+    sha256 = "sha256-llum30rTCtlxN4DlLk+buv4X6FR3KY5cwuODUenwzy4=";
   };
 
   installFlags = [ "prefix=$(out)" ];
 
   meta = with lib; {
     description = "QMI IDL compiler";
-    homepage = "https://github.com/linux-msm/qmic";
+    homepage = "https://github.com/andersson/qmic";
     license = licenses.bsd3;
-    maintainers = [ ];
-    platforms = platforms.linux;
+    platforms = platforms.aarch64;
   };
 }

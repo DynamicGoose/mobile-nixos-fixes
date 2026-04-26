@@ -1,12 +1,12 @@
 { lib
 , runCommand
-, linux-firmware
+, firmwareLinuxNonfree
 }:
 
 # The minimum redistributable set of firmware files required for the device.
 runCommand "chromeos-sc7180-firmware" {
-  src = linux-firmware;
-  meta.license = linux-firmware.meta.license;
+  src = firmwareLinuxNonfree;
+  meta.license = firmwareLinuxNonfree.meta.license;
 } ''
   for firmware in \
     ath10k/WCN3990/hw1.0 \

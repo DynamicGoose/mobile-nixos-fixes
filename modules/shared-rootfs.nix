@@ -24,7 +24,7 @@ in
     system.boot.loader.initrdFile = "no-initrd";
 
     # And totally obliterate device-specific files from stage-2.
-    system.systemBuilderCommands = ''
+    system.extraSystemBuilderCmds = ''
       echo ":: Removing non-generic system items..."
       (
         cd $out

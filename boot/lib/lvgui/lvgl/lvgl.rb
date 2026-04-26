@@ -7,7 +7,6 @@ module LVGL
     :CURSOR,
     :EVENT,
     :FIT,
-    :IMG_CF,
     :KB_MODE,
     :KB_STYLE,
     :LABEL_ALIGN,
@@ -54,8 +53,6 @@ module LVGL
         else
           if arg.respond_to? :lv_obj_pointer
             arg.lv_obj_pointer
-          elsif arg.respond_to? :lv_style_pointer
-            arg.lv_style_pointer
           else
             arg
           end
@@ -146,7 +143,7 @@ module LVGL
     def set_style(style)
       # Prevents the object from being collected
       @style = style
-      LVGL.ffi_call!(self.class, :set_style, @self_pointer, style)
+      LVGL.ffi_call!(self.class, :set_style, @self_pointer, style.lv_style_pointer)
     end
 
     def glue_obj(value)
@@ -248,21 +245,13 @@ module LVGL
     LV_TYPE = :img
   end
 
-  class LVCanvas < LVObject
-    LV_TYPE = :canvas
-
-    def self.allocate_buffer(width, height, type)
-      LVGL.ffi_call!(LVImage, :buf_alloc, width, height, type)
-    end
-  end
-
   class LVPage < LVContainer
     LV_TYPE = :page
 
     def set_style(type, style)
       # Prevents the object from being collected
       @style = style
-      LVGL.ffi_call!(self.class, :set_style, @self_pointer, type, style)
+      LVGL.ffi_call!(self.class, :set_style, @self_pointer, type, style.lv_style_pointer)
     end
 
     def get_style(style_type)
@@ -293,7 +282,7 @@ module LVGL
       # Prevents the object from being collected
       @_style ||= {}
       @_style[style_type] = style
-      LVGL.ffi_call!(self.class, :set_style, @self_pointer, style_type, style)
+      LVGL.ffi_call!(self.class, :set_style, @self_pointer, style_type, style.lv_style_pointer)
     end
   end
 
@@ -325,7 +314,7 @@ module LVGL
       # Prevents the object from being collected
       @_style ||= {}
       @_style[style_type] = style
-      LVGL.ffi_call!(self.class, :set_style, @self_pointer, style_type, style)
+      LVGL.ffi_call!(self.class, :set_style, @self_pointer, style_type, style.lv_style_pointer)
     end
   end
 
@@ -341,7 +330,7 @@ module LVGL
       # Prevents the object from being collected
       @_style ||= {}
       @_style[style_type] = style
-      LVGL.ffi_call!(self.class, :set_style, @self_pointer, style_type, style)
+      LVGL.ffi_call!(self.class, :set_style, @self_pointer, style_type, style.lv_style_pointer)
     end
   end
 
@@ -357,7 +346,7 @@ module LVGL
       # Prevents the object from being collected
       @_style ||= {}
       @_style[style_type] = style
-      LVGL.ffi_call!(self.class, :set_style, @self_pointer, style_type, style)
+      LVGL.ffi_call!(self.class, :set_style, @self_pointer, style_type, style.lv_style_pointer)
     end
   end
 

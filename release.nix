@@ -46,12 +46,7 @@ let
       if args' ? system
       then builtins.throw "Providing the `system` argument when providing your own `pkgs` is forbidden. You should instead pass the desired `system` argument to your `pkgs` instance."
       else (args'.pkgs)
-    else (import ./pkgs.nix {
-      inherit system;
-      config = {
-        allowAliases = false;
-      };
-    })
+    else (import ./pkgs.nix { inherit system; })
   ;
 
   mobileReleaseTools = (import ./lib/release-tools.nix { inherit pkgs; });
@@ -76,24 +71,9 @@ let
   inherit (pkgs) lib releaseTools;
   inherit (mobileReleaseTools.withPkgs pkgs)
     evalFor
+    evalWithConfiguration
+    knownSystems
     specialConfig
-  ;
-
-  # Add `allowAliases = false` to `evalWithConfiguration` for the release evaluations.
-  evalWithConfiguration = 
-    config: device:
-    (mobileReleaseTools.withPkgs pkgs).evalWithConfiguration
-    {
-      imports = [
-        {
-          nixpkgs.config = {
-            allowAliases = false;
-          };
-        }
-        config
-      ];
-    }
-    device
   ;
 
   # Systems we should eval for, per host system.
@@ -126,7 +106,10 @@ let
     in
     eval: let overlay = (lib.genAttrs overlayAttrNames (name: eval.pkgs.${name})); in
     overlay // {
-      xf86-video-fbdev = eval.pkgs.xf86-video-fbdev;
+      # We only "monkey patch" over top of the main nixos one.
+      xorg = {
+        xf86videofbdev = eval.pkgs.xorg.xf86videofbdev;
+      };
 
       # lib-like attributes...
       # How should we handle these?
@@ -167,7 +150,7 @@ let
   device = lib.genAttrs devices (device:
     lib.genAttrs systems (system:
       (evalWithConfiguration {
-        nixpkgs.buildPlatform = system;
+        nixpkgs.localSystem = knownSystems.${system};
       } device).config.mobile.outputs.default
     )
   );
@@ -177,7 +160,7 @@ let
   kernel = lib.genAttrs devices (device:
     lib.genAttrs systems (system:
       (evalWithConfiguration {
-        nixpkgs.buildPlatform = system;
+        nixpkgs.localSystem = knownSystems.${system};
       } device).config.mobile.boot.stage-1.kernel.package
     )
   );
@@ -209,14 +192,14 @@ let
 
   evalInstaller =
     { device
-    , buildPlatform
+    , localSystem
     }:
     let
       eval = evalWithConfiguration {
         imports = [
           ./examples/installer/configuration.nix
         ];
-        nixpkgs.buildPlatform = buildPlatform;
+        nixpkgs.localSystem = knownSystems.${localSystem};
       } device;
     in
       eval // { inherit (eval.config.mobile) outputs; }
@@ -247,13 +230,18 @@ rec {
       aarch64-linux.toplevel = (evalExample { example = ./examples/phosh; system = "aarch64-linux"; }).outputs.toplevel;
       cross-x86-aarch64.toplevel = (evalExample { example = ./examples/phosh; system = "x86_64-linux"; targetSystem = "aarch64-linux"; }).outputs.toplevel;
     };
+    plasma-mobile = {
+      x86_64-linux.toplevel  = (evalExample { example = ./examples/plasma-mobile; system = "x86_64-linux"; }).outputs.toplevel;
+      aarch64-linux.toplevel = (evalExample { example = ./examples/plasma-mobile; system = "aarch64-linux"; }).outputs.toplevel;
+      cross-x86-aarch64.toplevel = (evalExample { example = ./examples/plasma-mobile; system = "x86_64-linux"; targetSystem = "aarch64-linux"; }).outputs.toplevel;
+    };
   };
 
   installer = {
-    lenovo-krane = (evalInstaller { device = "lenovo-krane"; buildPlatform = "aarch64-linux"; }).outputs.default;
-    lenovo-wormdingler = (evalInstaller { device = "lenovo-wormdingler"; buildPlatform = "aarch64-linux"; }).outputs.default;
-    pine64-pinephone = (evalInstaller { device = "pine64-pinephone"; buildPlatform = "aarch64-linux"; }).outputs.default;
-    pine64-pinephonepro = (evalInstaller { device = "pine64-pinephonepro"; buildPlatform = "aarch64-linux"; }).outputs.default;
+    lenovo-krane = (evalInstaller { device = "lenovo-krane"; localSystem = "aarch64-linux"; }).outputs.default;
+    lenovo-wormdingler = (evalInstaller { device = "lenovo-wormdingler"; localSystem = "aarch64-linux"; }).outputs.default;
+    pine64-pinephone = (evalInstaller { device = "pine64-pinephone"; localSystem = "aarch64-linux"; }).outputs.default;
+    pine64-pinephonepro = (evalInstaller { device = "pine64-pinephonepro"; localSystem = "aarch64-linux"; }).outputs.default;
   };
 
   # Overlays build native, and cross, according to shouldEvalOn
@@ -279,10 +267,10 @@ rec {
 
   cross-compiled = {
     installer = {
-      lenovo-krane = (evalInstaller { device = "lenovo-krane"; buildPlatform = "x86_64-linux"; }).outputs.default;
-      lenovo-wormdingler = (evalInstaller { device = "lenovo-wormdingler"; buildPlatform = "x86_64-linux"; }).outputs.default;
-      pine64-pinephone = (evalInstaller { device = "pine64-pinephone"; buildPlatform = "x86_64-linux"; }).outputs.default;
-      pine64-pinephonepro = (evalInstaller { device = "pine64-pinephonepro"; buildPlatform = "aarch64-linux"; }).outputs.default;
+      lenovo-krane = (evalInstaller { device = "lenovo-krane"; localSystem = "x86_64-linux"; }).outputs.default;
+      lenovo-wormdingler = (evalInstaller { device = "lenovo-wormdingler"; localSystem = "x86_64-linux"; }).outputs.default;
+      pine64-pinephone = (evalInstaller { device = "pine64-pinephone"; localSystem = "x86_64-linux"; }).outputs.default;
+      pine64-pinephonepro = (evalInstaller { device = "pine64-pinephonepro"; localSystem = "aarch64-linux"; }).outputs.default;
     };
   };
 
@@ -302,6 +290,7 @@ rec {
         examples.hello.x86_64-linux.toplevel
         examples.hello.cross-x86-aarch64.toplevel
         examples.phosh.x86_64-linux.toplevel
+        examples.plasma-mobile.x86_64-linux.toplevel
 
         # Flashable zip binaries are universal for a platform.
         overlay.x86_64-linux.aarch64-linux-cross.mobile-nixos.android-flashable-zip-binaries
@@ -313,6 +302,7 @@ rec {
         # Example systems
         examples.hello.aarch64-linux.toplevel
         examples.phosh.aarch64-linux.toplevel
+        examples.plasma-mobile.aarch64-linux.toplevel
 
         installer.pine64-pinephone
 

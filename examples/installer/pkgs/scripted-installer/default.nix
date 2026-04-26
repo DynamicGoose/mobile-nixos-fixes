@@ -37,7 +37,7 @@ let
         ];
       };
     in
-    mobile-nixos.script-loader.wrap {
+    mobile-nixos.stage-1.script-loader.wrap {
       name = script;
       applet = "${app}/libexec/app.mrb";
       env = {

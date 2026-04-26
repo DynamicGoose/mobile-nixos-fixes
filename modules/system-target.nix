@@ -2,64 +2,28 @@
 
 let
   inherit (lib)
-    mkDefault
-    mkIf
     mkOption
     types
   ;
-  inherit (lib.systems)
-    elaborate
-  ;
-  inherit (config)
-    nixpkgs
-  ;
-  inherit (config.nixpkgs)
-    hostPlatform
-    localSystem
-  ;
   cfg = config.mobile.system;
+  inherit (config.nixpkgs) localSystem;
 
-  # Use JSON to escape values for printing
-  e = builtins.toJSON;
+  # The platform selected by the configuration
+  selectedPlatform = lib.systems.elaborate cfg.system;
 
-  # The host platform selected by the Mobile device configuration
-  deviceHostPlatform = elaborate cfg.system;
-
-  # The `config.nixpkgs` attribute set value defaults are not supposed to be read.
-  # Let's try anyway, and assume a pure evaluation with i.e. `[flake]lib.nixosSystem` is in play when that fails.
-  # This should be safe, as this is only used to automatically compute cross-compilation in “impure” environments.
-  hasLocalSystem =
-    (builtins.tryEval (
-      config.nixpkgs.localSystem
-    )).success
-  ;
-
-  # When `nixpkgs` is built on a different platform than it will be running on.
-  isCross = hasLocalSystem && deviceHostPlatform.system != localSystem.system;
-
-  # Be mindful about using `config` values that depends on `nixpkgs.buildPlatform`!
-  # This is used when setting `nixpkgs.buildPlatform`, so any values depending on `nixpkgs.buildPlatform`,
-  # including `nixpkgs.buildPlatform` will cause an infinite recursion.
-  traceCrossBuildPlatform =
-    buildPlatform:
-    builtins.trace ''
-      Building for cross?: ${e deviceHostPlatform.system} != ${e localSystem.system} → ${if isCross then "we are" else "we're not"}.
-                nixpkgs.buildPlatform.config → ${e /*nixpkgs.*/buildPlatform.config}
-                nixpkgs.hostPlatform.config → ${e nixpkgs.hostPlatform.config}
-    '' buildPlatform
-  ;
+  isCross = selectedPlatform.system != localSystem.system;
 in
 {
   options.mobile = {
     system.system = mkOption {
-      # Known supported target types.
+      # Known supported target types for Mobile NixOS
       type = types.enum [
         "aarch64-linux"
         "armv7l-linux"
         "x86_64-linux"
       ];
       description = ''
-        Defines the host platform architecture the device is.
+        Defines the kind of target architecture system the device is.
 
         This will automagically setup cross-compilation where possible.
       '';
@@ -69,24 +33,16 @@ in
   config = {
     assertions = [
       {
-        assertion = cfg.system == pkgs.stdenv.targetPlatform.system;
-        message = ''
-          pkgs.stdenv.targetPlatform.system expected to be ${e cfg.system}, is ${e pkgs.stdenv.targetPlatform.system}
-              nixpkgs.buildPlatform → ${e config.nixpkgs.buildPlatform.system}
-              nixpkgs.hostPlatform → ${e config.nixpkgs.hostPlatform.system}
-        '';
+        assertion = pkgs.stdenv.targetPlatform.system == cfg.system;
+        message = "pkgs.stdenv.targetPlatform.system expected to be `${cfg.system}`, is `${pkgs.stdenv.targetPlatform.system}`";
       }
     ];
 
-    nixpkgs.hostPlatform =
-      mkDefault deviceHostPlatform
-    ;
-    nixpkgs.buildPlatform =
-      mkIf isCross (
-        # We are only using `traceCrossBuildPlatform` when doing cross-compilation.
-        # Otherwise it's noise for native builds.
-        mkDefault (traceCrossBuildPlatform (elaborate localSystem.system))
-      )
-    ;
+    nixpkgs.crossSystem = lib.mkIf isCross (
+      builtins.trace ''
+        Building with crossSystem?: ${selectedPlatform.system} != ${localSystem.system} → ${if isCross then "we are" else "we're not"}.
+               crossSystem: config: ${selectedPlatform.config}''
+      selectedPlatform
+    );
   };
 }

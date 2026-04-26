@@ -1,4 +1,4 @@
-{ config, lib, pkgs, extendModules, ... }:
+{ config, lib, pkgs, ... }:
 
 # This module provides the `stage-0` build output.
 # It is the same configuration, with minor customizations.
@@ -66,29 +66,24 @@ in
   };
 
   config = {
-    mobile.outputs.stage-0 = (extendModules {
-      modules = [
-        (
-          { config, ... }:
-          lib.mkIf supportsStage-0 {
-            mobile.boot.stage-1.stage = 0;
-            mobile.boot.stage-1.extraUtils = [
-              { package = pkgs.kexec-tools; }
-              { package = fdt-forward; }
-            ];
-            mobile.boot.stage-1.bootConfig.stage-0 = {
-              forward = {
-                nodes = [
-                  "/memory"
-                ] ++ config.mobile.quirks.fdt-forward.nodes;
-                props = [
-                  ["/" "serial-number"]
-                ] ++ config.mobile.quirks.fdt-forward.props;
-              };
-            };
-          }
-        )
-      ];
+    mobile.outputs.stage-0 = (config.lib.mobile-nixos.composeConfig {
+      config = { config, ... }: lib.mkIf supportsStage-0 {
+        mobile.boot.stage-1.stage = 0;
+        mobile.boot.stage-1.extraUtils = [
+          { package = pkgs.kexec-tools; }
+          { package = fdt-forward; }
+        ];
+        mobile.boot.stage-1.bootConfig.stage-0 = {
+          forward = {
+            nodes = [
+              "/memory"
+            ] ++ config.mobile.quirks.fdt-forward.nodes;
+            props = [
+              ["/" "serial-number"]
+            ] ++ config.mobile.quirks.fdt-forward.props;
+          };
+        };
+      };
     }).config;
   };
 }

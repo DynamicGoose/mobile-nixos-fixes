@@ -43,10 +43,7 @@ let
       ${android-flashable-fragment-assertDevice}
       ${android-flashable-fragment-burnSystem}
     '';
-    copyFiles = if config.mobile.system.android.useSparseImage then ''
-      echo "Converting system.img to Android sparse format..."
-      ${pkgs.android-tools}/bin/img2simg ${rootfs}/${rootfs.filename} system.img
-    '' else ''
+    copyFiles = ''
       cp -v ${rootfs}/${rootfs.filename} system.img
     '';
   };
@@ -60,12 +57,8 @@ let
     '';
     copyFiles = ''
       cp -v ${android-bootimg} boot.img
-    '' + (if config.mobile.system.android.useSparseImage then ''
-      echo "Converting system.img to Android sparse format..."
-      ${pkgs.android-tools}/bin/img2simg ${rootfs}/${rootfs.filename} system.img
-    '' else ''
       cp -v ${rootfs}/${rootfs.filename} system.img
-    '');
+    '';
   };
 in
 {
