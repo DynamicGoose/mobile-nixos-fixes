@@ -24,6 +24,7 @@
 , writeShellScript
 , writeShellScriptBin
 
+, python3
 , perl
 , bc
 , net-tools
@@ -216,7 +217,7 @@ stdenv.mkDerivation (inputArgs // {
   updateConfigFromStructuredConfig = !__mobile-nixos-useStrictKernelConfig;
 
   depsBuildBuild = [ buildPackages.stdenv.cc ];
-  nativeBuildInputs = [ perl bc net-tools openssl rsync gmp libmpc mpfr ]
+  nativeBuildInputs = [ perl bc net-tools openssl rsync gmp libmpc mpfr python3 ]
     ++ optional (platform.linux-kernel.target == "uImage") buildPackages.ubootTools
     ++ optional (lib.versionAtLeast version "4.14" && lib.versionOlder version "5.8") libelf
     ++ optional (lib.versionAtLeast version "4.15") util-linux
@@ -605,10 +606,24 @@ stdenv.mkDerivation (inputArgs // {
           # Replace the script with a hardcoded equivalent result.
           # The script echoes values that are sourced (.) in a Makefile.
           cat ${writeShellScript "nconf-cfg.sh" ''
+            set -e
+            set -u
+            set -o pipefail
+
+            cflags=$1
+            libs=$2
+            
             export PKG_CONFIG_PATH="${buildPackages.ncurses6.dev}/lib/pkgconfig"
             PKGS="ncursesw menuw panelw"
-            echo cflags=\"$(pkg-config --cflags $PKGS)\"
-            echo libs=\"-L $(pkg-config --variable=libdir ncursesw) $(pkg-config --libs $PKGS)\"
+
+            (
+            pkg-config --cflags $PKGS
+            ) > "$cflags"
+            
+            (
+            printf -- "-L%s\n" $(pkg-config --variable=libdir $PKGS)
+            pkg-config --libs $PKGS
+            ) > "$libs"
           ''} > scripts/kconfig/nconf-cfg.sh
         fi
 
